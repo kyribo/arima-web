@@ -1,0 +1,53 @@
+
+> frontend@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/rizky/project/arima-web/frontend
+Getting Svelte diagnostics...
+
+/home/rizky/project/arima-web/frontend/src/lib/components/risk-event/FilterSection.svelte:119:7
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+					<div>
+						<label class="block text-xs font-bold text-gray-500 uppercase mb-2">Date Range</label>
+						<div class="flex items-center gap-2">
+
+/home/rizky/project/arima-web/frontend/src/lib/components/risk-event/InboxView.svelte:86:19
+Error: Argument of type 'unknown' is not assignable to parameter of type 'Iterable<unknown> | ArrayLike<unknown> | null | undefined'. (ts)
+										<div class="flex gap-2 flex-wrap">
+											{#each value as img}
+												<img
+
+/home/rizky/project/arima-web/frontend/src/lib/components/risk-event/InboxView.svelte:88:14
+Error: Type 'unknown' is not assignable to type 'string | null | undefined'. (ts)
+												<img
+													src={img}
+													alt="Diff"
+
+/home/rizky/project/arima-web/frontend/src/lib/components/risk-event/RiskEventModal.svelte:587:5
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+				/>
+				<button
+					class="absolute -top-10 right-0 text-white hover:text-gray-300"
+					onclick={() => (previewImage = null)}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="w-8 h-8"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			</div>
+
+====================================
+svelte-check found 2 errors and 2 warnings in 3 files
