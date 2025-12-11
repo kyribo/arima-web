@@ -35,6 +35,28 @@
 	// Mock Data: Approval Requests
 	let approvalRequests = $state<ApprovalRequest[]>([
 		{
+			id: 'REQ-002',
+			timestamp: new Date().toISOString(),
+			action: 'create',
+			status: 'pending',
+			payload: {
+                reportTitle: 'Suspicious Transaction Pattern (High Value) - New Entry',
+                clientCode: 'CL-998877',
+                riskDescription: 'Detected multiple high value transactions within short timeframe, potential money laundering.',
+                severity: 'high',
+                impact: 'Compliance risk and potential fines.',
+                actionTaken: 'Account frozen temporarily.',
+                followUpPlan: 'Conduct enhanced due diligence.',
+                additionalNotes: 'Waiting for compliance officer review.',
+                images: [],
+                status: 'open',
+                date: new Date().toISOString().split('T')[0]
+            },
+			targetIncidentId: '', // New entry doesn't have an ID yet or the payload contains the proposed ID
+			requestedBy: 'Risk Analyst',
+			note: 'New risk event derived from automated monitoring.'
+		},
+		{
 			id: 'REQ-001',
 			timestamp: new Date().toISOString(),
 			action: 'delete',
@@ -249,6 +271,36 @@
 		}
 	}
 
+    function handleViewDetails(req: ApprovalRequest) {
+        modalMode = 'view';
+        editingId = req.targetIncidentId || null;
+        
+        let targetData: any = {};
+
+        if (req.action === 'create' || req.action === 'edit') {
+            targetData = req.payload;
+        } else if (req.action === 'delete') {
+            const existing = incidents.find(i => i.id === req.targetIncidentId);
+            if (existing) targetData = existing;
+        }
+
+        formState = {
+            reportTitle: targetData.reportTitle || '',
+            clientCode: targetData.clientCode || '',
+            riskDescription: targetData.riskDescription || '',
+            severity: targetData.severity || 'medium',
+            impact: targetData.impact || '',
+            actionTaken: targetData.actionTaken || '',
+            followUpPlan: targetData.followUpPlan || '',
+            additionalNotes: targetData.additionalNotes || '',
+            images: targetData.images || [],
+            status: targetData.status || 'open',
+            date: targetData.date || new Date().toISOString().split('T')[0]
+        };
+        
+        showModal = true;
+    }
+
     function handlePrint() {
 		// Wait for print layout to render data
 		setTimeout(() => {
@@ -427,7 +479,13 @@
 			{/if}
 		{:else}
 			<!-- Inbox View -->
-			<InboxView bind:showInbox {pendingRequests} {handleApprove} {handleReject} />
+			<InboxView
+				bind:showInbox
+				{pendingRequests}
+				{handleApprove}
+				{handleReject}
+				{handleViewDetails}
+			/>
 		{/if}
 	</main>
 
@@ -443,6 +501,7 @@
 		{handlePrint}
 		onClose={closeModal}
 		onEdit={openEditModal}
+		allowPrint={!showInbox}
 	/>
 
 	<!-- Print Layout -->

@@ -6,12 +6,14 @@
         showInbox = $bindable(), 
         pendingRequests, 
         handleApprove, 
-        handleReject 
+        handleReject,
+        handleViewDetails
     } = $props<{
         showInbox: boolean;
         pendingRequests: ApprovalRequest[];
         handleApprove: (req: ApprovalRequest) => void;
         handleReject: (id: string) => void;
+        handleViewDetails: (req: ApprovalRequest) => void;
     }>();
 </script>
 
@@ -178,6 +180,12 @@
 					</div>
 
 					<div class="flex gap-3">
+						<button
+							onclick={() => handleViewDetails(req)}
+							class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+						>
+							View Details
+						</button>
 						<button
 							onclick={() => handleReject(req.id)}
 							class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"

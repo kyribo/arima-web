@@ -13,7 +13,8 @@
         handleDelete,
         handlePrint,
         onClose,
-        onEdit
+        onEdit,
+        allowPrint = true
     } = $props<{
         showModal: boolean;
         modalMode: 'create' | 'edit' | 'view';
@@ -25,6 +26,7 @@
         handlePrint: () => void;
         onClose: () => void;
         onEdit: (incident: Incident) => void;
+        allowPrint?: boolean;
     }>();
 
     let previewImage = $state<string | null>(null);
@@ -513,7 +515,7 @@
 					</div>
 
 					<div class="flex gap-3">
-						{#if modalMode !== 'create'}
+						{#if modalMode !== 'create' && allowPrint}
 							<button
 								type="button"
 								onclick={handlePrint}
