@@ -1,5 +1,5 @@
 export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low';
-export type IncidentStatus = 'open' | 'resolved' | 'closed';
+export type IncidentStatus = 'Waiting for Approval' | 'Published';
 
 export interface Incident {
     id: string;

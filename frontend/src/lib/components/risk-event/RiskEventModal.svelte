@@ -54,7 +54,32 @@
     function removeImage(index: number) {
 		formState.images = formState.images.filter((_: string, i: number) => i !== index);
 	}
+
+    function handlePaste(e: ClipboardEvent) {
+        if (!showModal || modalMode === 'view') return;
+        
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (const item of items) {
+             if (item.type.indexOf('image') !== -1) {
+                 const blob = item.getAsFile();
+                 if (blob) {
+                     e.preventDefault(); 
+                     const reader = new FileReader();
+                     reader.onload = (event) => {
+                         if (event.target?.result) {
+                             formState.images = [...formState.images, event.target.result as string];
+                         }
+                     };
+                     reader.readAsDataURL(blob);
+                 }
+             }
+        }
+    }
 </script>
+
+<svelte:window onpaste={handlePaste} />
 
 {#if showModal}
 	<div
@@ -115,6 +140,7 @@
 												type="date"
 												id="reportDate"
 												bind:value={formState.date}
+												required
 												class="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white transition-shadow disabled:opacity-75 disabled:cursor-not-allowed"
 											/>
 										{/if}
@@ -372,7 +398,9 @@
 												<p class="text-sm text-gray-500">
 													<span class="text-blue-600 font-medium">Click to upload</span> or drag and drop
 												</p>
-												<p class="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+												<p class="text-xs text-gray-400 mt-1">
+													PNG, JPG up to 5MB • Paste image supported
+												</p>
 											</div>
 										</div>
 									{/if}

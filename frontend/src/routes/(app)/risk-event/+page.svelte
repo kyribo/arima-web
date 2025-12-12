@@ -49,7 +49,7 @@
                 followUpPlan: 'Conduct enhanced due diligence.',
                 additionalNotes: 'Waiting for compliance officer review.',
                 images: [],
-                status: 'open',
+                status: 'Waiting for Approval',
                 date: new Date().toISOString().split('T')[0]
             },
 			targetIncidentId: '', // New entry doesn't have an ID yet or the payload contains the proposed ID
@@ -83,7 +83,7 @@
 		followUpPlan: '',
 		additionalNotes: '',
 		images: [] as string[],
-		status: 'open' as IncidentStatus,
+		status: 'Waiting for Approval' as IncidentStatus,
         date: ''
 	});
 
@@ -127,7 +127,7 @@
 			followUpPlan: '',
 			additionalNotes: '',
 			images: [],
-			status: 'open',
+			status: 'Waiting for Approval',
             date: new Date().toISOString().split('T')[0]
 		};
 		showModal = true;
@@ -180,8 +180,8 @@
         e.preventDefault();
         
         // Validation (simple)
-        if (!formState.reportTitle || !formState.clientCode || !formState.riskDescription) {
-            alert('Please fill in required fields');
+        if (!formState.date || !formState.reportTitle || !formState.clientCode || !formState.riskDescription || !formState.actionTaken) {
+            alert('Please fill in required fields:\n- Date\n- Report Title\n- Client Code\n- Risk Description\n- Action Taken');
             return;
         }
 
@@ -199,7 +199,7 @@
                 followUpPlan: formState.followUpPlan,
                 additionalNotes: formState.additionalNotes,
                 images: formState.images,
-                status: 'open',
+                status: 'Waiting for Approval',
                 reportedBy: 'Current User',
                 resolvedAt: null,
                 maker: 'Current User',
@@ -294,7 +294,7 @@
             followUpPlan: targetData.followUpPlan || '',
             additionalNotes: targetData.additionalNotes || '',
             images: targetData.images || [],
-            status: targetData.status || 'open',
+            status: targetData.status || 'Waiting for Approval',
             date: targetData.date || new Date().toISOString().split('T')[0]
         };
         

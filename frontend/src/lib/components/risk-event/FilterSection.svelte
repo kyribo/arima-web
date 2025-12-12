@@ -144,7 +144,7 @@
 						<div
 							class="bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-xl p-1 flex"
 						>
-							{#each ['all', 'open', 'resolved', 'closed'] as stat}
+							{#each ['all', 'Waiting for Approval', 'Published'] as stat}
 								<button
 									onclick={() => (filterStatus = stat as any)}
 									class="flex-1 py-1.5 rounded-lg text-sm font-medium capitalize transition-all {filterStatus ===

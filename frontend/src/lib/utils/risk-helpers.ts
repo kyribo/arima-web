@@ -2,7 +2,7 @@ import type { Incident, IncidentSeverity, IncidentStatus } from '../types/risk-e
 
 export const generateMockIncidents = (): Incident[] => {
     const severities: IncidentSeverity[] = ['critical', 'high', 'medium', 'low'];
-    const statuses: IncidentStatus[] = ['open', 'resolved', 'closed'];
+    const statuses: IncidentStatus[] = ['Waiting for Approval', 'Published'];
     const titles = ['System Timeout', 'Data Sync Error', 'API Latency', 'Login Failure', 'Report Delay', 'Unauthorized Access', 'Connectivity Loss', 'Database Deadlock', 'File Corruption', 'Memory Leak'];
     const makers = ['John Doe', 'Jane Smith', 'Mike Ross', 'Rachel Green', 'Harvey Specter'];
     const approvers = ['Jessica Pearson', 'Louis Litt', 'Donna Paulsen', '-'];
@@ -20,7 +20,7 @@ export const generateMockIncidents = (): Incident[] => {
             actionTaken: 'Switched to secondary feed provider immediately. Logged ticket with vendor.',
             followUpPlan: 'Review vendor SLA performance and conduct failover drill next week.',
             additionalNotes: 'Latency normalized at 09:45.',
-            status: 'resolved',
+            status: 'Published',
             reportedBy: 'Ops Team',
             resolvedAt: '09:45',
             images: [],
@@ -39,7 +39,7 @@ export const generateMockIncidents = (): Incident[] => {
             actionTaken: 'IP range blocked at firewall level. Account temporarily locked.',
             followUpPlan: 'Analyze access logs for pattern and enhance rate limiting rules.',
             additionalNotes: 'No successful data exfiltration detected.',
-            status: 'open',
+            status: 'Waiting for Approval',
             reportedBy: 'Security SOC',
             resolvedAt: null,
             images: [],
@@ -58,7 +58,7 @@ export const generateMockIncidents = (): Incident[] => {
             actionTaken: 'Manual trace of transaction logs initiated.',
             followUpPlan: 'Update reconciliation script to handle edge case in currency conversion.',
             additionalNotes: 'Likely due to rounding error in new forex module.',
-            status: 'open',
+            status: 'Waiting for Approval',
             reportedBy: 'Back Office',
             resolvedAt: null,
             images: [],
@@ -77,7 +77,7 @@ export const generateMockIncidents = (): Incident[] => {
             actionTaken: 'Network team monitored the line; provider performed maintenance.',
             followUpPlan: 'Review dedicated line stability report.',
             additionalNotes: 'Resolved automatically after provider maintenance.',
-            status: 'closed',
+            status: 'Published',
             reportedBy: 'NetOps',
             resolvedAt: '17:30',
             images: [],
@@ -90,7 +90,7 @@ export const generateMockIncidents = (): Incident[] => {
         const date = new Date();
         date.setDate(date.getDate() - Math.floor(i / 5)); // Spread dates back in time
         const sev = severities[i % 4];
-        const stat = statuses[i % 3];
+        const stat = statuses[i % statuses.length];
         const title = titles[i % titles.length];
         return {
             id: `INC-AUTO-${100 + i}`,
@@ -106,10 +106,10 @@ export const generateMockIncidents = (): Incident[] => {
             additionalNotes: 'Generated mock data.',
             status: stat,
             reportedBy: 'AutoBot',
-            resolvedAt: stat === 'open' ? null : '18:00',
+            resolvedAt: stat === 'Waiting for Approval' ? null : '18:00',
             images: [],
             maker: makers[i % makers.length],
-            approver: stat === 'open' ? '-' : approvers[i % approvers.length]
+            approver: stat === 'Waiting for Approval' ? '-' : approvers[i % approvers.length]
         };
     });
 
@@ -134,9 +134,8 @@ export function getSeverityStyles(severity: string) {
 
 export function getStatusColor(status: string) {
     switch (status) {
-        case 'open': return 'bg-purple-50 text-purple-700 border-purple-200';
-        case 'resolved': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        case 'closed': return 'bg-gray-50 text-gray-700 border-gray-200';
+        case 'Waiting for Approval': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        case 'Published': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
         default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
 }
