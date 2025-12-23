@@ -6,16 +6,43 @@
 
 	let isLoading = $state(false);
 
-	function handleLogin(event: Event) {
+	async function handleLogin(event: Event) {
 		event.preventDefault();
 		isLoading = true;
 
-		// Simulate login delay
-		setTimeout(() => {
+		try {
+            // Get form data
+            const email = (document.getElementById('email') as HTMLInputElement).value;
+            const password = (document.getElementById('password') as HTMLInputElement).value;
+
+            const formData = new FormData();
+            formData.append('username', email); // OAuth2 expects 'username' field
+            formData.append('password', password);
+
+			const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(errorData.detail || 'Login failed');
+                isLoading = false;
+                return;
+            }
+
+            const data = await response.json();
+            // Store token
+            localStorage.setItem('access_token', data.access_token);
+            
 			isLoading = false;
-			// Handle login logic here
+			// Redirect
 			window.location.href = '/dashboard';
-		}, 1500);
+		} catch (error) {
+            console.error(error);
+            alert('An error occurred during login');
+			isLoading = false;
+		}
 	}
 </script>
 

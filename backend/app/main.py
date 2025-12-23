@@ -3,8 +3,26 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import get_db
+from app.api.v1 import auth
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title=settings.APP_NAME)
+
+# Set up CORS
+origins = [
+    "http://localhost:5173",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 @app.get("/")
 def read_root():
