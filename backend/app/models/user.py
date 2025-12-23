@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, String, Text, DateTime
+from sqlalchemy import Column, String, Text, Boolean, DateTime, text, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -11,8 +12,11 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    first_name = Column(String)
-    last_name = Column(String)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    
+    sessions = relationship("Session", back_populates="user")
+    secrets = relationship("UserSecret", back_populates="user", uselist=False)
     role = Column(String, default="user")
     phone = Column(String)
     bio = Column(Text)

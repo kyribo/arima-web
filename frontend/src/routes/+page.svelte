@@ -5,6 +5,15 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	let isLoading = $state(false);
+    let show2FA = $state(false);
+
+	function resetLogin() {
+        show2FA = false;
+        isLoading = false;
+        // Optional: clear password?
+        const passInput = document.getElementById('password') as HTMLInputElement;
+        if (passInput) passInput.value = '';
+    }
 
 	async function handleLogin(event: Event) {
 		event.preventDefault();
@@ -14,10 +23,15 @@
             // Get form data
             const email = (document.getElementById('email') as HTMLInputElement).value;
             const password = (document.getElementById('password') as HTMLInputElement).value;
+            const otpInput = document.getElementById('otp') as HTMLInputElement | null;
+            const otp = otpInput ? otpInput.value : '';
 
             const formData = new FormData();
-            formData.append('username', email); // OAuth2 expects 'username' field
+            formData.append('username', email);
             formData.append('password', password);
+            if (otp) {
+                formData.append('otp', otp);
+            }
 
 			const response = await fetch('http://localhost:8000/api/v1/auth/login', {
                 method: 'POST',
@@ -26,17 +40,24 @@
 
             if (!response.ok) {
                 const errorData = await response.json();
+                
+                if (response.status === 401 && errorData.detail === '2FA code required') {
+                    show2FA = true;
+                    isLoading = false;
+                    // Focus OTP input next tick
+                    setTimeout(() => document.getElementById('otp')?.focus(), 100);
+                    return;
+                }
+
                 alert(errorData.detail || 'Login failed');
                 isLoading = false;
                 return;
             }
 
             const data = await response.json();
-            // Store token
             localStorage.setItem('access_token', data.access_token);
             
 			isLoading = false;
-			// Redirect
 			window.location.href = '/dashboard';
 		} catch (error) {
             console.error(error);
@@ -78,15 +99,21 @@
 
 		<form onsubmit={handleLogin} class="space-y-6">
 			<div class="space-y-2">
-				<label for="email" class="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1"
-					>Email Address</label
-				>
+				<div class="flex justify-between items-center ml-1">
+					<label for="email" class="text-sm font-medium text-gray-700 dark:text-neutral-300"
+						>Email or Username</label
+					>
+                    {#if show2FA}
+                        <button type="button" onclick={resetLogin} class="text-xs text-blue-600 hover:text-blue-500">Change user</button>
+                    {/if}
+				</div>
 				<div class="relative">
 					<input
-						type="email"
+						type="text"
 						id="email"
-						placeholder="name@company.com"
-						class="w-full bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                        disabled={show2FA}
+						placeholder="username or email@company.com"
+						class="w-full bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
 						required
 					/>
 				</div>
@@ -97,50 +124,84 @@
 					<label for="password" class="text-sm font-medium text-gray-700 dark:text-neutral-300"
 						>Password</label
 					>
+					{#if !show2FA}
 					<a
 						href="/forgot-password"
 						class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
 						>Forgot password?</a
 					>
+                    {/if}
 				</div>
 				<div class="relative">
 					<input
 						type="password"
 						id="password"
+                        disabled={show2FA}
 						placeholder="••••••••"
-						class="w-full bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+						class="w-full bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
 						required
 					/>
 				</div>
 			</div>
 
-			<button
-				type="submit"
-				disabled={isLoading}
-				class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center group"
-			>
-				{#if isLoading}
-					<div
-						class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
-					></div>
-				{:else}
-					Sign In
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M14 5l7 7m0 0l-7 7m7-7H3"
-						/>
-					</svg>
-				{/if}
-			</button>
+            {#if show2FA}
+                <div class="space-y-2" transition:fade>
+                    <label for="otp" class="text-sm font-medium text-gray-700 dark:text-neutral-300 ml-1"
+                        >Two-Factor Code</label
+                    >
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="otp"
+                            placeholder="000 000"
+                            maxlength="6"
+                            class="w-full bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 text-center tracking-widest font-mono"
+                            required
+                        />
+                    </div>
+                </div>
+            {/if}
+
+            <div class="space-y-3">
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:hover:from-blue-500 dark:hover:to-purple-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center group"
+                >
+                    {#if isLoading}
+                        <div
+                            class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                        ></div>
+                    {:else}
+                        {show2FA ? 'Verify Code' : 'Sign In'}
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M14 5l7 7m0 0l-7 7m7-7H3"
+                            />
+                        </svg>
+                    {/if}
+                </button>
+                
+                {#if show2FA}
+                    <button 
+                        type="button" 
+                        onclick={resetLogin} 
+                        class="w-full py-3.5 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                        transition:fade
+                    >
+                        Cancel Login
+                    </button>
+                {/if}
+            </div>
 		</form>
 
 		<div class="mt-8 pt-6 border-t border-gray-200 dark:border-white/10 text-center">

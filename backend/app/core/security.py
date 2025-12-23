@@ -10,13 +10,16 @@ ALGORITHM = "HS256"
 # In production, this should be a secret key from env
 SECRET_KEY = "SECRET_KEY_GOES_HERE" 
 
-def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] = None, session_id: Optional[str] = None) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode = {"exp": expire, "sub": str(subject)}
+    if session_id:
+        to_encode["sid"] = str(session_id)
+        
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 

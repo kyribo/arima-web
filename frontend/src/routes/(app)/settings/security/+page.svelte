@@ -1,5 +1,7 @@
 <script lang="ts">
     import { fade, slide } from 'svelte/transition';
+    import { authFetch } from '$lib/api';
+    import { onMount } from 'svelte';
 
     let currentPassword = $state('');
     let newPassword = $state('');
@@ -9,37 +11,69 @@
     let isSettingUp2FA = $state(false);
     let verificationCode = $state('');
     let showSetupSuccess = $state(false);
+    let qrCodeUrl = $state('');
+    let secretKey = $state('');
     
-    // Dummy Data for Sessions
-    let sessions = $state([
-        {
-            id: 1,
-            device: 'Windows PC (Chrome)',
-            location: 'Jakarta, Indonesia',
-            ip: '192.168.1.1',
-            lastActive: 'Active now',
-            isCurrent: true,
-            icon: 'desktop'
-        },
-        {
-            id: 2,
-            device: 'iPhone 13 (Safari)',
-            location: 'Bandung, Indonesia',
-            ip: '10.0.0.5',
-            lastActive: '2 hours ago',
-            isCurrent: false,
-            icon: 'mobile'
-        },
-        {
-            id: 3,
-            device: 'MacBook Pro (Firefox)',
-            location: 'Surabaya, Indonesia',
-            ip: '172.16.0.2',
-            lastActive: '3 days ago',
-            isCurrent: false,
-            icon: 'laptop'
+    // Real Session Data
+    interface Session {
+        id: string;
+        ip_address: string;
+        user_agent: string;
+        location: string;
+        created_at: string;
+        last_active_at: string;
+        is_revoked: boolean;
+        is_current: boolean; 
+    }
+
+    let sessions = $state<Session[]>([]);
+    let isLoadingSessions = $state(true);
+
+    async function fetchSessions() {
+        try {
+            const res = await authFetch('/sessions/');
+            if (res.ok) {
+                sessions = await res.json();
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isLoadingSessions = false;
         }
-    ]);
+    }
+
+    async function revokeSession(id: string) {
+        if (!confirm('Are you sure you want to revoke this session?')) return;
+        
+        try {
+            const res = await authFetch(`/sessions/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                sessions = sessions.filter(s => s.id !== id);
+            } else {
+                alert('Failed to revoke session');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function getDeviceIcon(ua: string) {
+        ua = ua.toLowerCase();
+        if (ua.includes('mobile')) return 'mobile';
+        return 'desktop';
+    }
+
+    onMount(async () => {
+        fetchSessions();
+        // Check if 2FA is enabled (need to fetch user profile)
+        try {
+            const res = await authFetch('/users/me');
+            if (res.ok) {
+                const user = await res.json();
+                is2FAEnabled = user.is_2fa_enabled;
+            }
+        } catch(e) { console.error(e); }
+    });
 
     let isSaving = $state(false);
 
@@ -54,41 +88,89 @@
         }, 1500);
     }
 
-    function toggle2FA() {
+    async function toggle2FA() {
         if (is2FAEnabled) {
-            // Disable immediately if currently enabled
-            is2FAEnabled = false;
-            showSetupSuccess = false;
+            // Disable
+             if (!confirm('Disable Two-Factor Authentication?')) return;
+             try {
+                const res = await authFetch('/auth/2fa/disable', { method: 'POST' });
+                if (res.ok) {
+                    is2FAEnabled = false;
+                    showSetupSuccess = false;
+                }
+             } catch(e) { console.error(e); }
         } else {
-            // Start setup flow if enabling
-            isSettingUp2FA = true;
-            verificationCode = '';
+            // Start setup (Get QR)
+            try {
+                const res = await authFetch('/auth/2fa/setup', { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    qrCodeUrl = data.qr_code_url;
+                    secretKey = data.secret;
+                    isSettingUp2FA = true;
+                    verificationCode = '';
+                }
+            } catch(e) { console.error(e); }
         }
     }
     
     function cancel2FASetup() {
         isSettingUp2FA = false;
         verificationCode = '';
+        qrCodeUrl = '';
+        secretKey = '';
     }
 
-    function verifyAndEnable2FA() {
-        // Simulate verification
+    async function verifyAndEnable2FA() {
         isSaving = true;
-        setTimeout(() => {
+        try {
+            const res = await authFetch('/auth/2fa/enable', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ token: verificationCode })
+            });
+
+            if (res.ok) {
+                is2FAEnabled = true;
+                isSettingUp2FA = false;
+                showSetupSuccess = true;
+                setTimeout(() => showSetupSuccess = false, 3000);
+            } else {
+                alert('Invalid verification code');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error verifying code');
+        } finally {
             isSaving = false;
-            is2FAEnabled = true;
-            isSettingUp2FA = false;
-            showSetupSuccess = true;
-            setTimeout(() => showSetupSuccess = false, 3000);
-        }, 1000);
+        }
     }
 
-    function revokeSession(id: number) {
-        sessions = sessions.filter(s => s.id !== id);
-    }
+    async function reset2FA() {
+        if (!confirm('This will invalidate your current 2FA codes. You will need to re-scan the new QR code. Continue?')) return;
+        
+        try {
+            // 1. Disable first
+            const disableRes = await authFetch('/auth/2fa/disable', { method: 'POST' });
+            if (!disableRes.ok) throw new Error('Failed to disable 2FA');
 
-    function logoutAllOtherSessions() {
-        sessions = sessions.filter(s => s.isCurrent);
+            // 2. Setup immediately
+            const setupRes = await authFetch('/auth/2fa/setup', { method: 'POST' });
+            if (setupRes.ok) {
+                const data = await setupRes.json();
+                qrCodeUrl = data.qr_code_url;
+                secretKey = data.secret;
+                
+                // Update state
+                is2FAEnabled = false; 
+                isSettingUp2FA = true;
+                verificationCode = '';
+                showSetupSuccess = false;
+            }
+        } catch(e) { 
+            console.error(e); 
+            alert('Failed to reset 2FA');
+        }
     }
 </script>
 
@@ -116,20 +198,32 @@
 			</div>
 
 			<!-- Toggle Button -->
-			<button
-				onclick={toggle2FA}
-				class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-neutral-800"
-				class:bg-blue-600={is2FAEnabled}
-				class:bg-gray-200={!is2FAEnabled}
-				class:dark:bg-neutral-700={!is2FAEnabled}
-			>
-				<span class="sr-only">Enable 2FA</span>
-				<span
-					class="inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-300"
-					class:translate-x-7={is2FAEnabled}
-					class:translate-x-1={!is2FAEnabled}
-				></span>
-			</button>
+            <div class="flex items-center gap-4">
+                {#if is2FAEnabled}
+                    <button 
+                        onclick={reset2FA}
+                        class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                        Reset 2FA
+                    </button>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-neutral-700"></div>
+                {/if}
+
+                <button
+                    onclick={toggle2FA}
+                    class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-neutral-800"
+                    class:bg-blue-600={is2FAEnabled}
+                    class:bg-gray-200={!is2FAEnabled}
+                    class:dark:bg-neutral-700={!is2FAEnabled}
+                >
+                    <span class="sr-only">Enable 2FA</span>
+                    <span
+                        class="inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-300"
+                        class:translate-x-7={is2FAEnabled}
+                        class:translate-x-1={!is2FAEnabled}
+                    ></span>
+                </button>
+            </div>
 		</div>
 
 		<!-- Setup Flow -->
@@ -145,15 +239,18 @@
 							</p>
 						</div>
 						<div class="bg-white p-4 rounded-xl border border-gray-200 inline-block">
-							<!-- Dummy QR Code placeholder -->
-							<div
-								class="w-40 h-40 bg-gray-900 flex items-center justify-center text-white text-xs text-center p-2"
-							>
-								[ QR CODE ]<br />Valid for 5:00
-							</div>
+							{#if qrCodeUrl}
+                                <img src={qrCodeUrl} alt="2FA QR Code" class="w-40 h-40" />
+                            {:else}
+                                <div
+                                    class="w-40 h-40 bg-gray-900 flex items-center justify-center text-white text-xs text-center p-2"
+                                >
+                                    Loading QR...
+                                </div>
+                            {/if}
 						</div>
 						<div class="text-xs text-gray-500">
-							Can't scan? <button class="text-blue-600 hover:underline">View setup key</button>
+							Can't scan? <button class="text-blue-600 hover:underline" onclick={() => alert(secretKey)}>View setup key</button>
 						</div>
 					</div>
 
@@ -334,29 +431,14 @@
 		<div class="space-y-4">
 			{#each sessions as session (session.id)}
 				<div
-					class="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-mixed transition-colors"
+					class="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 transition-colors"
 					transition:slide
 				>
 					<div class="flex items-center gap-4">
 						<div
 							class="w-10 h-10 rounded-full bg-gray-100 dark:bg-neutral-700 flex items-center justify-center text-gray-500 dark:text-gray-400"
 						>
-							{#if session.icon === 'desktop'}
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="w-5 h-5"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-									/>
-								</svg>
-							{:else if session.icon === 'mobile'}
+							{#if getDeviceIcon(session.user_agent || '') === 'mobile'}
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									class="w-5 h-5"
@@ -390,25 +472,25 @@
 						</div>
 						<div>
 							<p class="text-sm font-medium text-gray-900 dark:text-white">
-								{session.device}
-								{#if session.isCurrent}
+								{session.ip_address || 'Unknown IP'}
+								{#if session.is_current}
 									<span
 										class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300"
 										>Current</span
 									>
 								{/if}
 							</p>
-							<p class="text-xs text-gray-500 dark:text-gray-400">
-								{session.location} • {session.ip} •
+							<p class="text-xs text-gray-500 dark:text-gray-400 max-w-md truncate">
+								{session.user_agent || 'Unknown Device'} • 
 								<span
-									class:text-green-600={session.isCurrent}
-									class:dark:text-green-400={session.isCurrent}>{session.lastActive}</span
+									class:text-green-600={session.is_current}
+									class:dark:text-green-400={session.is_current}>{new Date(session.last_active_at).toLocaleString()}</span
 								>
 							</p>
 						</div>
 					</div>
 
-					{#if !session.isCurrent}
+					{#if !session.is_current}
 						<button
 							onclick={() => revokeSession(session.id)}
 							class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
@@ -417,6 +499,8 @@
 						</button>
 					{/if}
 				</div>
+            {:else}
+               <div class="text-center py-4 text-gray-500">No active sessions found.</div>
 			{/each}
 		</div>
 	</div>

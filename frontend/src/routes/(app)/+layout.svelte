@@ -1,8 +1,11 @@
 <script lang="ts">
   import ThemeToggle from '$lib/components/ThemeToggle.svelte';
   import { menuItems, type MenuItem } from '$lib/config/navigation';
+  import { user } from '$lib/stores/user';
   import { page } from '$app/stores';
   import { fade, slide } from 'svelte/transition';
+  import { goto } from '$app/navigation';
+  import { browser } from '$app/environment';
 
   let { children } = $props();
   
@@ -10,6 +13,21 @@
   let isSidebarCollapsed = $state(false);
   let isMobileMenuOpen = $state(false);
   let expandedMenus = $state<string[]>([]);
+  let isCheckingAuth = $state(true);
+
+  $effect(() => {
+    // 1. Basic Protection: Check if token exists
+    if (browser) {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            goto('/');
+            return;
+        }
+        isCheckingAuth = false;
+    }
+    // 2. Fetch user profile
+    user.fetch();
+  });
 
   function toggleSidebar() {
     isSidebarCollapsed = !isSidebarCollapsed;
@@ -56,6 +74,12 @@
   });
 </script>
 
+{#if isCheckingAuth}
+    <!-- Full Screen Loader to prevent FOUC -->
+    <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-900">
+        <!-- Optional: Add a logo or spinner here -->
+    </div>
+{:else}
 <div class="min-h-screen bg-gray-50 dark:bg-neutral-900 flex transition-colors duration-300">
 	<!-- Mobile Menu Overlay -->
 	{#if isMobileMenuOpen}
@@ -244,7 +268,7 @@
 		<!-- User Profile (Bottom) -->
 		<div class="p-4 border-t border-gray-200 dark:border-white/5">
 			<button
-				onclick={() => (window.location.href = '/')}
+				onclick={user.logout}
 				class="w-full flex items-center {isSidebarCollapsed
 					? 'justify-center'
 					: 'gap-3'} p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer group text-left relative"
@@ -258,7 +282,7 @@
 						<p
 							class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 truncate"
 						>
-							Rizky
+							{$user?.first_name || 'Loading...'} {$user?.last_name || ''}
 						</p>
 						<p
 							class="text-xs text-gray-500 dark:text-gray-400 group-hover:text-red-500/70 dark:group-hover:text-red-400/70 truncate"
@@ -393,3 +417,4 @@
 		</div>
 	</main>
 </div>
+{/if}

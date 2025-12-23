@@ -1,52 +1,97 @@
 <script lang="ts">
-    import { fade } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
+	import { onMount } from 'svelte';
+    import { authFetch } from '$lib/api';
+    import { user } from '$lib/stores/user';
 
-    const defaults = {
-        firstName: 'Rizky',
-        lastName: 'Hasan',
-        username: 'rizky.hasan',
-        email: 'rizky@example.com',
-        role: 'Director',
-        phone: '+62 812 3456 7890',
-        bio: 'Software Engineer based in Jakarta. Loves coding and coffee.',
-        location: 'Jakarta, Indonesia'
-    };
-
-    let firstName = $state(defaults.firstName);
-    let lastName = $state(defaults.lastName);
-    let username = $state(defaults.username);
-    let email = $state(defaults.email);
-    let role = $state(defaults.role);
-    let phone = $state(defaults.phone);
-    let bio = $state(defaults.bio);
-    let location = $state(defaults.location);
+    let firstName = $state('');
+    let lastName = $state('');
+    let username = $state('');
+    let email = $state('');
+    let role = $state('');
+    let phone = $state('');
+    let bio = $state('');
+    let location = $state('');
 
     let isEditing = $state(false);
     let isSaving = $state(false);
+    let isLoading = $state(true);
 
     // Backup state for cancelling edits
-    let originalState = { ...defaults };
+    let originalState: any = {};
+
+    onMount(async () => {
+        try {
+            const res = await authFetch('/users/me');
+            if (res.ok) {
+                const data = await res.json();
+                firstName = data.first_name || '';
+                lastName = data.last_name || '';
+                username = data.username || '';
+                email = data.email || '';
+                role = data.role || '';
+                phone = data.phone || '';
+                bio = data.bio || '';
+                location = data.location || '';
+                
+                originalState = { firstName, lastName, username, email, phone, bio, location, role };
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isLoading = false;
+        }
+    });
 
     function toggleEdit() {
         if (!isEditing) {
-            // Enter edit mode: backup current state
+            // Enter edit mode
             originalState = { firstName, lastName, username, email, phone, bio, location, role };
         } else {
             // Cancel edit: restore original state
-            ({ firstName, lastName, username, email, phone, bio, location, role } = originalState);
+            firstName = originalState.firstName;
+            lastName = originalState.lastName;
+            username = originalState.username;
+            email = originalState.email;
+            phone = originalState.phone;
+            bio = originalState.bio;
+            location = originalState.location;
+            role = originalState.role;
         }
         isEditing = !isEditing;
     }
 
-    function handleSave() {
+    async function handleSave() {
         isSaving = true;
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const payload = {
+                first_name: firstName,
+                last_name: lastName,
+                phone: phone,
+                bio: bio,
+                location: location
+            };
+            
+            const res = await authFetch('/users/me', {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+            
+            if (res.ok) {
+                isEditing = false;
+                // Update backup state
+                originalState = { firstName, lastName, username, email, phone, bio, location, role };
+                // Refresh global store
+                await user.fetch();
+            } else {
+                alert('Failed to update profile');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error updating profile');
+        } finally {
             isSaving = false;
-            isEditing = false;
-            // Update backup state to new values
-            originalState = { firstName, lastName, username, email, phone, bio, location, role };
-        }, 1500);
+        }
     }
 </script>
 
