@@ -7,3 +7,10 @@ psycopg2-binary>=2.9.9
 pydantic-settings>=2.4.0
 python-dotenv>=1.0.0
 bcrypt==3.2.0
+python-jose[cryptography]
+passlib[bcrypt]
+pyotp
+qrcode
+pillow
+requests
+python-multipart
