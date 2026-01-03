@@ -167,9 +167,36 @@
                 verificationCode = '';
                 showSetupSuccess = false;
             }
+
         } catch(e) { 
             console.error(e); 
             alert('Failed to reset 2FA');
+        }
+    }
+
+    async function logoutAllOtherSessions() {
+        if (!confirm('Are you sure you want to log out all other devices?')) return;
+        
+        const otherSessions = sessions.filter(s => !s.is_current);
+        if (otherSessions.length === 0) return;
+
+        let successCount = 0;
+        
+        // Parallel revocation
+        await Promise.all(otherSessions.map(async (s) => {
+            try {
+                const res = await authFetch(`/sessions/${s.id}`, { method: 'DELETE' });
+                if (res.ok) successCount++;
+            } catch (e) {
+                console.error(`Failed to revoke session ${s.id}`, e);
+            }
+        }));
+
+        if (successCount > 0) {
+            alert(`Logged out from ${successCount} devices.`);
+            fetchSessions();
+        } else {
+            alert('Failed to log out from other devices.');
         }
     }
 </script>
@@ -198,32 +225,32 @@
 			</div>
 
 			<!-- Toggle Button -->
-            <div class="flex items-center gap-4">
-                {#if is2FAEnabled}
-                    <button 
-                        onclick={reset2FA}
-                        class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                        Reset 2FA
-                    </button>
-                    <div class="h-4 w-px bg-gray-300 dark:bg-neutral-700"></div>
-                {/if}
+			<div class="flex items-center gap-4">
+				{#if is2FAEnabled}
+					<button
+						onclick={reset2FA}
+						class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+					>
+						Reset 2FA
+					</button>
+					<div class="h-4 w-px bg-gray-300 dark:bg-neutral-700"></div>
+				{/if}
 
-                <button
-                    onclick={toggle2FA}
-                    class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-neutral-800"
-                    class:bg-blue-600={is2FAEnabled}
-                    class:bg-gray-200={!is2FAEnabled}
-                    class:dark:bg-neutral-700={!is2FAEnabled}
-                >
-                    <span class="sr-only">Enable 2FA</span>
-                    <span
-                        class="inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-300"
-                        class:translate-x-7={is2FAEnabled}
-                        class:translate-x-1={!is2FAEnabled}
-                    ></span>
-                </button>
-            </div>
+				<button
+					onclick={toggle2FA}
+					class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-neutral-800"
+					class:bg-blue-600={is2FAEnabled}
+					class:bg-gray-200={!is2FAEnabled}
+					class:dark:bg-neutral-700={!is2FAEnabled}
+				>
+					<span class="sr-only">Enable 2FA</span>
+					<span
+						class="inline-block h-6 w-6 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-300"
+						class:translate-x-7={is2FAEnabled}
+						class:translate-x-1={!is2FAEnabled}
+					></span>
+				</button>
+			</div>
 		</div>
 
 		<!-- Setup Flow -->
@@ -240,17 +267,20 @@
 						</div>
 						<div class="bg-white p-4 rounded-xl border border-gray-200 inline-block">
 							{#if qrCodeUrl}
-                                <img src={qrCodeUrl} alt="2FA QR Code" class="w-40 h-40" />
-                            {:else}
-                                <div
-                                    class="w-40 h-40 bg-gray-900 flex items-center justify-center text-white text-xs text-center p-2"
-                                >
-                                    Loading QR...
-                                </div>
-                            {/if}
+								<img src={qrCodeUrl} alt="2FA QR Code" class="w-40 h-40" />
+							{:else}
+								<div
+									class="w-40 h-40 bg-gray-900 flex items-center justify-center text-white text-xs text-center p-2"
+								>
+									Loading QR...
+								</div>
+							{/if}
 						</div>
 						<div class="text-xs text-gray-500">
-							Can't scan? <button class="text-blue-600 hover:underline" onclick={() => alert(secretKey)}>View setup key</button>
+							Can't scan? <button
+								class="text-blue-600 hover:underline"
+								onclick={() => alert(secretKey)}>View setup key</button
+							>
 						</div>
 					</div>
 
@@ -481,10 +511,11 @@
 								{/if}
 							</p>
 							<p class="text-xs text-gray-500 dark:text-gray-400 max-w-md truncate">
-								{session.user_agent || 'Unknown Device'} • 
+								{session.user_agent || 'Unknown Device'} •
 								<span
 									class:text-green-600={session.is_current}
-									class:dark:text-green-400={session.is_current}>{new Date(session.last_active_at).toLocaleString()}</span
+									class:dark:text-green-400={session.is_current}
+									>{new Date(session.last_active_at).toLocaleString()}</span
 								>
 							</p>
 						</div>
@@ -499,8 +530,8 @@
 						</button>
 					{/if}
 				</div>
-            {:else}
-               <div class="text-center py-4 text-gray-500">No active sessions found.</div>
+			{:else}
+				<div class="text-center py-4 text-gray-500">No active sessions found.</div>
 			{/each}
 		</div>
 	</div>

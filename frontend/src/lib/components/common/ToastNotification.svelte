@@ -53,6 +53,7 @@
 			</div>
 			<button
 				onclick={() => toast.dismiss(t.id)}
+				aria-label="Dismiss notification"
 				class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
 			>
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

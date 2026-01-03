@@ -12,6 +12,8 @@ from app.schemas.risk import (
 from uuid import UUID
 import json
 import datetime
+from datetime import date
+from typing import Dict, Any, Optional
 
 from app.core.permissions import PermissionChecker
 
@@ -23,7 +25,6 @@ def get_next_risk_id(db: Session) -> str:
     # Simple ID generation logic: INC-YYYY-NNN
     # In production, use sequence or UUID. For now, mimicking mock: INC-2024-NNN
     # Query last ID
-    import datetime
     year = datetime.datetime.now().year
     prefix = f"INC-{year}-"
     
@@ -35,7 +36,7 @@ def get_next_risk_id(db: Session) -> str:
         num_part = int(last.id.split('-')[-1])
         new_num = num_part + 1
         return f"{prefix}{new_num:03d}"
-    except:
+    except Exception:
         return f"{prefix}001"
 
 def get_next_req_id(db: Session) -> str:
@@ -52,13 +53,10 @@ def get_next_req_id(db: Session) -> str:
              return f"REQ-{new_num:03d}"
         else:
              return "REQ-001"
-    except:
+    except Exception:
         return "REQ-001"
 
 # --- Read Endpoints ---
-
-from typing import Dict, Any, Optional
-from datetime import date
 
 @router.get("/", response_model=RiskEventPagination)
 def list_risk_events(

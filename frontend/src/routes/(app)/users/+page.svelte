@@ -526,10 +526,12 @@
 						<!-- Basic Info -->
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-									>Username</label
+								<label
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+									for="u_username">Username</label
 								>
 								<input
+									id="u_username"
 									bind:value={editingUser.username}
 									disabled={modalMode === 'edit'}
 									type="text"
@@ -537,10 +539,12 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-									>Email</label
+								<label
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+									for="u_email">Email</label
 								>
 								<input
+									id="u_email"
 									bind:value={editingUser.email}
 									type="email"
 									class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm"
@@ -548,10 +552,12 @@
 							</div>
 							{#if modalMode === 'create'}
 								<div class="md:col-span-2">
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-										>Password</label
+									<label
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+										for="u_password">Password</label
 									>
 									<input
+										id="u_password"
 										bind:value={editingUser.password}
 										type="password"
 										class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm"
@@ -559,20 +565,24 @@
 								</div>
 							{/if}
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-									>First Name</label
+								<label
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+									for="u_firstname">First Name</label
 								>
 								<input
+									id="u_firstname"
 									bind:value={editingUser.first_name}
 									type="text"
 									class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm"
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-									>Last Name</label
+								<label
+									class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+									for="u_lastname">Last Name</label
 								>
 								<input
+									id="u_lastname"
 									bind:value={editingUser.last_name}
 									type="text"
 									class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm"
@@ -582,10 +592,12 @@
 
 						<!-- Role Selection -->
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-								>User Role</label
+							<label
+								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+								for="u_role">User Role</label
 							>
 							<select
+								id="u_role"
 								bind:value={editingUser.role}
 								class="w-full px-3 py-2 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
 							>
