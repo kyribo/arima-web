@@ -111,6 +111,8 @@
 			<div class="flex items-center gap-2">
 				<input
 					type="text"
+					name="search-monitoring"
+					autocomplete="off"
 					placeholder="Search user..."
 					class="bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
 				/>

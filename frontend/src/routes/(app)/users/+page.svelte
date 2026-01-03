@@ -304,6 +304,8 @@
 			</svg>
 			<input
 				type="text"
+				name="search-users"
+				autocomplete="off"
 				bind:value={SearchQuery}
 				placeholder="Search users..."
 				class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-gray-900 dark:text-white"
