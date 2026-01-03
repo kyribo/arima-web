@@ -6,6 +6,7 @@
   import { fade, slide } from 'svelte/transition';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { hasPermission } from '$lib/utils/permissions';
 
   let { children } = $props();
   
@@ -140,7 +141,11 @@
 			<!-- Navigation -->
 			<nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
 				{#snippet menuItem(item: MenuItem, level = 0)}
-					{@const visibleChildren = item.children?.filter((c) => !c.hidden) || []}
+					{@const visibleChildren =
+						item.children?.filter(
+							(c) =>
+								!c.hidden && (!c.requiredPermission || hasPermission($user, c.requiredPermission))
+						) || []}
 					{@const hasChildren = visibleChildren.length > 0}
 					{@const isExpanded = expandedMenus.includes(item.name)}
 
@@ -264,7 +269,7 @@
 					</div>
 				{/snippet}
 
-				{#each menuItems.filter((i) => !i.hidden) as item}
+				{#each menuItems.filter((i) => !i.hidden && (!i.requiredPermission || hasPermission($user, i.requiredPermission))) as item}
 					{@render menuItem(item)}
 				{/each}
 			</nav>

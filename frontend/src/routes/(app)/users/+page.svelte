@@ -24,7 +24,7 @@
             id: 'risk_event',
             label: 'Risk Event',
             permissions: [
-                { id: 'view', label: 'View Events' },
+                { id: 'read', label: 'View Events' },
                 { id: 'create', label: 'Create Event' },
                 { id: 'edit', label: 'Edit Event' },
                 { id: 'delete', label: 'Delete Event' },

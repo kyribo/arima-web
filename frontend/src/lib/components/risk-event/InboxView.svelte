@@ -7,13 +7,15 @@
         pendingRequests, 
         handleApprove, 
         handleReject,
-        handleViewDetails
+        handleViewDetails,
+        canApprove = false
     } = $props<{
         showInbox: boolean;
         pendingRequests: ApprovalRequest[];
         handleApprove: (req: ApprovalRequest) => void;
         handleReject: (id: string) => void;
         handleViewDetails: (req: ApprovalRequest) => void;
+        canApprove?: boolean;
     }>();
 
     function getSeverityColor(severity: string) {
@@ -319,19 +321,21 @@
 									>
 										View Details
 									</button>
-									<div class="h-8 w-px bg-gray-200 dark:bg-neutral-700 mx-1"></div>
-									<button
-										onclick={() => handleReject(req.id)}
-										class="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-semibold transition-colors"
-									>
-										Reject
-									</button>
-									<button
-										onclick={() => handleApprove(req)}
-										class="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
-									>
-										Approve
-									</button>
+									{#if canApprove}
+										<div class="h-8 w-px bg-gray-200 dark:bg-neutral-700 mx-1"></div>
+										<button
+											onclick={() => handleReject(req.id)}
+											class="px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-semibold transition-colors"
+										>
+											Reject
+										</button>
+										<button
+											onclick={() => handleApprove(req)}
+											class="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+										>
+											Approve
+										</button>
+									{/if}
 								</div>
 							</div>
 						</div>

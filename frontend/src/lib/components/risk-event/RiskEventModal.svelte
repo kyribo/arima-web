@@ -2,6 +2,11 @@
     import { fade, fly } from 'svelte/transition';
     import type { Incident, IncidentSeverity, IncidentStatus } from '$lib/types/risk-event';
     import { formatDateID } from '$lib/utils/risk-helpers';
+    import { api, API_BASE_URL } from '$lib/api';
+    import { toast } from '$lib/stores/toast';
+
+    // Derive Server URL (remove /api/v1 from base)
+    const SERVER_URL = API_BASE_URL.replace('/api/v1', '');
 
     let {
         showModal = $bindable(),
@@ -21,8 +26,8 @@
         formState: any; // Type strictly if possible
         incidents: Incident[];
         editingId: string | null;
-        handleSubmit: (e: Event) => void;
-        handleDelete: (id: string) => void;
+        handleSubmit: (e: Event) => Promise<void>;
+        handleDelete: (id: string) => Promise<void>;
         handlePrint: () => void;
         onClose: () => void;
         onEdit: (incident: Incident) => void;
@@ -30,24 +35,57 @@
     }>();
 
     let previewImage = $state<string | null>(null);
+    let isUploading = $state(false);
+    let isSubmitting = $state(false);
 
     function closeModal() {
+        if (isSubmitting || isUploading) return;
         onClose();
         previewImage = null;
     }
 
-    function handleFileSelect(e: Event) {
+    async function uploadFile(file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        isUploading = true;
+        try {
+            const token = localStorage.getItem('access_token');
+            const res = await fetch(`${API_BASE_URL}/upload/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            if (!res.ok) throw new Error('Upload failed');
+            
+            const data = await res.json();
+            return `${SERVER_URL}${data.url}`;
+        } catch (e) {
+            console.error('Upload Error:', e);
+            toast.error('Failed to upload image');
+            return null;
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    async function handleFileSelect(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (target.files) {
-			Array.from(target.files).forEach((file) => {
-				const reader = new FileReader();
-				reader.onload = (e) => {
-					if (e.target?.result) {
-						formState.images = [...formState.images, e.target.result as string];
-					}
-				};
-				reader.readAsDataURL(file);
-			});
+            let uploadedCount = 0;
+            for (const file of Array.from(target.files)) {
+                const url = await uploadFile(file);
+                if (url) {
+                    formState.images = [...formState.images, url];
+                    uploadedCount++;
+                }
+            }
+            if (uploadedCount > 0) {
+                toast.success(`${uploadedCount} image(s) uploaded`);
+            }
 		}
 	}
 
@@ -55,7 +93,7 @@
 		formState.images = formState.images.filter((_: string, i: number) => i !== index);
 	}
 
-    function handlePaste(e: ClipboardEvent) {
+    async function handlePaste(e: ClipboardEvent) {
         if (!showModal || modalMode === 'view') return;
         
         const items = e.clipboardData?.items;
@@ -65,16 +103,24 @@
              if (item.type.indexOf('image') !== -1) {
                  const blob = item.getAsFile();
                  if (blob) {
-                     e.preventDefault(); 
-                     const reader = new FileReader();
-                     reader.onload = (event) => {
-                         if (event.target?.result) {
-                             formState.images = [...formState.images, event.target.result as string];
-                         }
-                     };
-                     reader.readAsDataURL(blob);
+                     e.preventDefault();
+                     const url = await uploadFile(blob);
+                     if (url) {
+                         formState.images = [...formState.images, url];
+                         toast.success('Image pasted successfully');
+                     }
                  }
              }
+        }
+    }
+    
+    async function onFormSubmit(e: Event) {
+        e.preventDefault();
+        isSubmitting = true;
+        try {
+            await handleSubmit(e);
+        } finally {
+            isSubmitting = false;
         }
     }
 </script>
@@ -109,8 +155,8 @@
 				{/if}
 			</h2>
 
-			<form onsubmit={handleSubmit} class="space-y-6">
-				<fieldset disabled={modalMode === 'view'} class="contents">
+			<form onsubmit={onFormSubmit} class="space-y-6">
+				<fieldset disabled={modalMode === 'view' || isSubmitting} class="contents">
 					<div class="space-y-8">
 						<!-- Inputs -->
 						<div class="space-y-6">
@@ -368,10 +414,14 @@
 							<!-- Image Upload (Moved Below) -->
 							<div class="border-t border-gray-100 dark:border-white/5 pt-8">
 								<div class="">
-									<h3 class="font-bold text-gray-900 dark:text-white mb-4">Attachments</h3>
+									<h3 class="font-bold text-gray-900 dark:text-white mb-4">
+										Attachments {isUploading ? '(Uploading...)' : ''}
+									</h3>
 									{#if modalMode !== 'view'}
 										<div
-											class="border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer relative aspect-[3/1] flex flex-col items-center justify-center"
+											class="border-2 border-dashed border-gray-300 dark:border-neutral-700 rounded-xl p-6 text-center hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer relative aspect-[3/1] flex flex-col items-center justify-center {isUploading
+												? 'opacity-50 pointer-events-none'
+												: ''}"
 										>
 											<input
 												type="file"
@@ -379,6 +429,7 @@
 												accept="image/*"
 												onchange={handleFileSelect}
 												class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+												disabled={isUploading}
 											/>
 											<div class="pointer-events-none">
 												<svg
@@ -396,7 +447,10 @@
 													/>
 												</svg>
 												<p class="text-sm text-gray-500">
-													<span class="text-blue-600 font-medium">Click to upload</span> or drag and drop
+													<span class="text-blue-600 font-medium"
+														>{isUploading ? 'Uploading...' : 'Click to upload'}</span
+													>
+													{isUploading ? '' : 'or drag and drop'}
 												</p>
 												<p class="text-xs text-gray-400 mt-1">
 													PNG, JPG up to 5MB • Paste image supported
@@ -585,9 +639,14 @@
 							</button>
 							<button
 								type="submit"
-								class="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-black dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+								disabled={isSubmitting || isUploading}
+								class="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-medium hover:bg-black dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
 							>
-								{modalMode === 'create' ? 'Submit Entry' : 'Save Changes'}
+								{#if isSubmitting}
+									Saving...
+								{:else}
+									{modalMode === 'create' ? 'Submit Entry' : 'Save Changes'}
+								{/if}
 							</button>
 						{/if}
 					</div>

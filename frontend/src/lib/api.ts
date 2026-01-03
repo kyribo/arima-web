@@ -30,7 +30,17 @@ export async function authFetch(url: string, options: RequestInit = {}) {
 
 export const api = {
     get: async (url: string, config: any = {}) => {
-        const query = config.params ? '?' + new URLSearchParams(config.params).toString() : '';
+        let query = '';
+        if (config.params) {
+            const params = new URLSearchParams();
+            Object.entries(config.params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    params.append(key, String(value));
+                }
+            });
+            const qs = params.toString();
+            if (qs) query = `?${qs}`;
+        }
         const res = await authFetch(url + query, {
             method: 'GET',
             headers: config.headers

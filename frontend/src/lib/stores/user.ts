@@ -8,6 +8,7 @@ export interface UserProfile {
     first_name: string;
     last_name: string;
     role: string;
+    access: string[];
     avatar_url?: string;
 }
 
