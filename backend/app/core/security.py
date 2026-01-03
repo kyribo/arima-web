@@ -7,8 +7,7 @@ from app.core.config import settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 ALGORITHM = "HS256"
-# In production, this should be a secret key from env
-SECRET_KEY = "SECRET_KEY_GOES_HERE" 
+SECRET_KEY = settings.SECRET_KEY 
 
 def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] = None, session_id: Optional[str] = None) -> str:
     if expires_delta:

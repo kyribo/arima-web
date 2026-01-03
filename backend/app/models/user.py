@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Text, Boolean, DateTime, text, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -18,6 +18,7 @@ class User(Base):
     sessions = relationship("Session", back_populates="user")
     secrets = relationship("UserSecret", back_populates="user", uselist=False)
     role = Column(String, default="user")
+    access = Column(JSONB, default=[])
     phone = Column(String)
     bio = Column(Text)
     location = Column(String)

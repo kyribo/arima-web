@@ -16,6 +16,7 @@ class UserBase(BaseModel):
 class UserRead(UserBase):
     id: UUID
     role: str
+    access: list[str] = []
     is_active: bool
     is_2fa_enabled: bool
     created_at: datetime
@@ -23,10 +24,20 @@ class UserRead(UserBase):
     class Config:
         from_attributes = True
 
+class UserCreate(UserBase):
+    username: str
+    email: EmailStr
+    password: str
+    role: str = "User"
+    access: list[str] = []
+    is_active: bool = True
+
 class UserUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
     bio: Optional[str] = None
     location: Optional[str] = None
-    # Email/Username updates might require special handling (verification), keeping it simple for now or restricted
+    role: Optional[str] = None
+    access: Optional[list[str]] = None
+    is_active: Optional[bool] = None

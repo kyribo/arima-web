@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    SECRET_KEY: str
     
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
